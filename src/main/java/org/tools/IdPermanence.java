@@ -14,12 +14,7 @@ import java.util.Properties;
 /**
  * ID Permanence Encryption/Decryption Tool.
  *
- * Generates permanent, unique, and reproducible encrypted IDs for Open Banking / CDR compliance.
- * Uses AES encryption to produce consistent masked IDs based on:
- *   - Software Product ID (identifies the data recipient)
- *   - Resource ID (e.g., account ID)
- *   - Customer ID (the consenting user)
- *
+ * Encrypts or decrypts a single value using AES encryption.
  * Input values are read from a properties file (config.properties).
  */
 public class IdPermanence {
@@ -29,7 +24,7 @@ public class IdPermanence {
 
     public static void main(String[] args) {
 
-        String propertiesFile = "src/main/resources/config.properties";
+        String propertiesFile = "config.properties";
         if (args.length > 0) {
             propertiesFile = args[0];
         }
@@ -42,51 +37,34 @@ public class IdPermanence {
 
         String operation = properties.getProperty("operation", "ENCRYPT").trim().toUpperCase();
         String secretKey = properties.getProperty("secretKey", "").trim();
-        String softwareProductId = properties.getProperty("softwareProductId", "").trim();
-        String resourceId = properties.getProperty("resourceId", "").trim();
-        String customerId = properties.getProperty("customerId", "").trim();
-        String separator = properties.getProperty("separator", ":").trim();
+        String value = properties.getProperty("value", "").trim();
 
         if (secretKey.isEmpty()) {
             System.err.println("Error: 'secretKey' must be provided in the properties file.");
+            System.exit(1);
+        }
+        if (value.isEmpty()) {
+            System.err.println("Error: 'value' must be provided in the properties file.");
             System.exit(1);
         }
 
         System.out.println("============================================");
         System.out.println("       ID Permanence Tool");
         System.out.println("============================================");
-        System.out.println("Operation       : " + operation);
-        System.out.println("Secret Key      : " + secretKey);
-        System.out.println("Software Product: " + softwareProductId);
-        System.out.println("Resource ID     : " + resourceId);
-        System.out.println("Customer ID     : " + customerId);
-        System.out.println("Separator       : " + separator);
+        System.out.println("Operation  : " + operation);
+        System.out.println("Secret Key : " + secretKey);
+        System.out.println("Value      : " + value);
         System.out.println("--------------------------------------------");
 
         try {
             if ("ENCRYPT".equals(operation)) {
-                // Build the plaintext: softwareProductId + separator + resourceId + separator + customerId
-                String plainText = softwareProductId + separator + resourceId + separator + customerId;
-                System.out.println("Plain Text      : " + plainText);
-
-                String encrypted = encrypt(plainText, secretKey);
-                System.out.println("Encrypted ID    : " + encrypted);
+                String encrypted = encrypt(value, secretKey);
+                System.out.println("Encrypted  : " + encrypted);
 
             } else if ("DECRYPT".equals(operation)) {
-                // For decryption, the resourceId field holds the encrypted value
-                String encryptedValue = resourceId;
-                System.out.println("Encrypted Input : " + encryptedValue);
+                String decrypted = decrypt(value, secretKey);
+                System.out.println("Decrypted  : " + decrypted);
 
-                String decrypted = decrypt(encryptedValue, secretKey);
-                System.out.println("Decrypted Value : " + decrypted);
-
-                // Parse the decrypted components
-                String[] parts = decrypted.split(separator.equals(":") ? ":" : separator);
-                if (parts.length >= 3) {
-                    System.out.println("  -> Software Product ID : " + parts[0]);
-                    System.out.println("  -> Resource ID         : " + parts[1]);
-                    System.out.println("  -> Customer ID         : " + parts[2]);
-                }
             } else {
                 System.err.println("Error: Invalid operation '" + operation + "'. Use ENCRYPT or DECRYPT.");
                 System.exit(1);
